@@ -1,0 +1,35 @@
+name: Testes Automatizados
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Criar diretório de saves
+        run: mkdir -p saves
+
+      - name: Rodar test_economia.py
+        run: python test_economia.py
+
+      - name: Rodar test_upgrades.py
+        run: python test_upgrades.py
+
+      - name: Rodar test_progresso.py
+        run: python test_progresso.py
+
+      - name: Rodar test_display.py
+        run: python test_display.py

@@ -1,0 +1,26 @@
+# CODEOWNERS — define revisores obrigatórios por arquivo
+# Substitua @usuario pelo GitHub username de cada integrante
+
+# Módulo Economia
+economia.py        @rafael-solberg
+test_economia.py   @rafael-solberg
+
+# Módulo Upgrades
+upgrades.py        @david-benech
+test_upgrades.py   @david-benech
+
+# Módulo Progresso
+progresso.py       @leonardo-edelsberg
+test_progresso.py  @leonardo-edelsberg
+
+# Módulo Display
+display.py         @cadu-bernardo
+test_display.py    @cadu-bernardo
+
+# Main, Persistência e Constantes
+main.py            @nicholas-ferreira
+persistencia.py    @nicholas-ferreira
+constantes.py      @nicholas-ferreira
+
+# Qualquer outro arquivo — todos são revisores
+*                  @rafael-solberg @david-benech @leonardo-edelsberg @cadu-bernardo @nicholas-ferreira
