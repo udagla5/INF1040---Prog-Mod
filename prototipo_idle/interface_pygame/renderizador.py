@@ -390,7 +390,7 @@ def _linha_upgrade(janela, x0, y, w, item, eco, upg):
     janela.blit(surf, (x0 + PAD, y + 26))
 
     if comprado:
-        surf = _f['btn'].render('✔ comprado', True, GREEN_DIM)
+        surf = _f['btn'].render('$ comprado', True, GREEN_DIM)
         janela.blit(surf, (x0 + w - 110, y + 15))
     else:
         _, cs = display.formatar_numero(item['custo'])
