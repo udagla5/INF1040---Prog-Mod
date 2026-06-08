@@ -146,7 +146,7 @@ def _loop_principal():
 
         notificacoes = novos + notificacoes
         if vitoria:
-            notificacoes = ["★★★ PONTO ÔMEGA — VITÓRIA! ★★★"] + notificacoes
+            notificacoes = ["$$$ PONTO ÔMEGA — VITÓRIA! $$$"] + notificacoes
         notificacoes = notificacoes[:5]
 
         # ─── Renderizar ───────────────────────────────────────────────────
@@ -157,7 +157,7 @@ def _loop_principal():
         if notificacoes:
             print()
             for n in notificacoes:
-                print(f"  ★ {n}")
+                print(f"  $ {n}")
 
         if msg_feedback:
             print(f"\n{msg_feedback}")

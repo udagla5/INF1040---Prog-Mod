@@ -122,6 +122,12 @@ def executar_revolucao(estado_eco, estado_prog):
     _, eco_novo = economia.resetar_run(eco_novo)
     eco_novo    = {**eco_novo, 'laboratorios_desbloqueados': True}
 
+    # Após o reset, geradores e pontos voltam a zero. Com taxa_base == 0
+    # o multiplicador nunca é aplicado e o jogador fica sem renda.
+    # Devolve 2 mineradoras iniciais para garantir produção imediata.
+    _, eco_novo = economia.adicionar_gerador(eco_novo, 'mineradora_vermelha')
+    _, eco_novo = economia.adicionar_gerador(eco_novo, 'mineradora_vermelha')
+
     return (0, eco_novo, novo_prog)
 
 def pode_ascensao(estado_prog):
@@ -149,6 +155,10 @@ def executar_ascensao(estado_eco, estado_prog):
 
     _, eco_novo = economia.aplicar_expoente_ascensao(estado_eco, novos_fragmentos)
     _, eco_novo = economia.resetar_run(eco_novo)
+
+    # Mesmo motivo da revolução: sem geradores o expoente nunca é aplicado.
+    _, eco_novo = economia.adicionar_gerador(eco_novo, 'mineradora_vermelha')
+    _, eco_novo = economia.adicionar_gerador(eco_novo, 'mineradora_vermelha')
 
     return (0, eco_novo, novo_prog)
 

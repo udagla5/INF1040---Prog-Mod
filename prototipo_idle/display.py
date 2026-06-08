@@ -92,7 +92,7 @@ def renderizar_geradores(estado_eco, estado_upg):
 
 def renderizar_upgrades(estado_upg, estado_eco):
     linhas = ["\n  ┌─ UPGRADES " + "─" * 40]
-    icones = {'comprado': '✔', 'disponivel': '○', 'inacessivel': '✗'}
+    icones = {'comprado': '$', 'disponivel': 'O', 'inacessivel': 'X'}
     vistos = set()
     for id_upg, dados in estado_upg['catalogo'].items():
         alvo = dados['alvo']
@@ -130,14 +130,14 @@ def renderizar_progresso(estado_prog):
     if atingidos:
         linhas.append(f"  │  Marcos atingidos ({len(atingidos)}):")
         for mid in atingidos[-5:]:
-            linhas.append(f"  │    ★ {mid}")
+            linhas.append(f"  │    $ {mid}")
         if len(atingidos) > 5:
             linhas.append(f"  │    ... e mais {len(atingidos)-5}")
     else:
         linhas.append("  │  Nenhum marco atingido ainda.")
     if vitoria:
         linhas.append("  │")
-        linhas.append("  │  ★★★ PONTO ÔMEGA ATINGIDO! VITÓRIA! ★★★")
+        linhas.append("  │  $$$ PONTO ÔMEGA ATINGIDO! VITÓRIA! $$$")
     linhas.append(f"  └{'─'*48}")
     return (0, '\n'.join(linhas))
 

@@ -64,9 +64,9 @@ def _tick(delta, cmd=None):
     _, prog, vitoria = progresso.verificar_vitoria(eco, prog)
 
     for m in novos:
-        _jogo['msgs'].insert(0, f"★ Marco: {m}")
+        _jogo['msgs'].insert(0, f"$ Marco: {m}")
     if vitoria:
-        _jogo['msgs'].insert(0, "★ VITÓRIA! PONTO ÔMEGA ATINGIDO!")
+        _jogo['msgs'].insert(0, "$ VITÓRIA! PONTO ÔMEGA ATINGIDO!")
 
     if cmd:
         _, eco, upg, prog, msg = processar_comando(cmd, eco, upg, prog)
