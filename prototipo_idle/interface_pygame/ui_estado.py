@@ -13,12 +13,21 @@ __all__ = [
     'limpar_botoes',
     'registrar_botao',
     'botao_em',
+    # game feel
+    'adicionar_particula',
+    'atualizar_particulas',
+    'obter_particulas',
+    'registrar_flash',
+    'atualizar_flash',
+    'obter_flash',
 ]
 
 _estado = {
     'scroll_geradores': 0,
     'scroll_upgrades':  0,
     'botoes': [],          # list[ (pygame.Rect, str_comando) ]
+    'particulas': [],      # list[ dict ] — textos flutuantes
+    'flash': None,         # dict | None — overlay de tela
 }
 
 _SCROLL_MIN = 0
@@ -35,6 +44,8 @@ def inicializar_ui():
     _estado['scroll_geradores'] = 0
     _estado['scroll_upgrades']  = 0
     _estado['botoes']           = []
+    _estado['particulas']       = []
+    _estado['flash']            = None
     return (0, None)
 
 
@@ -112,3 +123,111 @@ def botao_em(pos):
         if rect.collidepoint(pos):
             return (0, cmd)
     return (0, None)
+
+
+# ---------------------------------------------------------------------------
+# Partículas flutuantes
+# ---------------------------------------------------------------------------
+
+def adicionar_particula(x, y, texto, cor=(255, 200, 55)):
+    """
+    Spawna um texto flutuante na posição (x, y).
+    Parâmetros:
+        x, y  (float) — posição inicial na tela
+        texto (str)   — texto a exibir
+        cor   (tuple) — cor RGB
+    Retornos:
+        (0, None)
+    """
+    import random
+    _estado['particulas'].append({
+        'x':       float(x) + random.uniform(-10, 10),
+        'y':       float(y),
+        'vx':      random.uniform(-18, 18),
+        'vy':      -75.0,
+        'texto':   texto,
+        'cor':     cor,
+        'vida':    1.4,
+        'vida_max': 1.4,
+    })
+    return (0, None)
+
+
+def atualizar_particulas(delta):
+    """
+    Avança a simulação das partículas pelo tempo delta (segundos).
+    Remove as que expiraram.
+    Retornos:
+        (0, None)
+    """
+    vivas = []
+    for p in _estado['particulas']:
+        p['vida'] -= delta
+        p['x'] += p['vx'] * delta
+        p['y'] += p['vy'] * delta
+        p['vy'] += 30 * delta   # leve gravidade
+        if p['vida'] > 0:
+            vivas.append(p)
+    _estado['particulas'] = vivas
+    return (0, None)
+
+
+def obter_particulas():
+    """
+    Retorna cópia da lista de partículas ativas.
+    Retornos:
+        (0, list[dict])
+    """
+    return (0, list(_estado['particulas']))
+
+
+# ---------------------------------------------------------------------------
+# Flash de tela
+# ---------------------------------------------------------------------------
+
+_FLASH_CORES = {
+    'revolucao': (230, 140,  40),
+    'ascensao':  (160,  80, 230),
+    'compra':    ( 60, 200,  90),
+    'marco':     (255, 200,  55),
+}
+
+def registrar_flash(tipo):
+    """
+    Inicia um flash de overlay na tela.
+    Parâmetros:
+        tipo (str) — 'revolucao' | 'ascensao' | 'compra' | 'marco'
+    Retornos:
+        (0, None)
+    """
+    cor = _FLASH_CORES.get(tipo, (255, 255, 255))
+    alpha_inicial = 160 if tipo in ('revolucao', 'ascensao') else 80
+    _estado['flash'] = {
+        'cor':   cor,
+        'alpha': float(alpha_inicial),
+        'decay': 280.0,
+    }
+    return (0, None)
+
+
+def atualizar_flash(delta):
+    """
+    Decai o alpha do flash de tela.
+    Retornos:
+        (0, None)
+    """
+    f = _estado['flash']
+    if f is not None:
+        f['alpha'] -= f['decay'] * delta
+        if f['alpha'] <= 0:
+            _estado['flash'] = None
+    return (0, None)
+
+
+def obter_flash():
+    """
+    Retorna o estado atual do flash de tela.
+    Retornos:
+        (0, dict | None)
+    """
+    return (0, _estado['flash'])

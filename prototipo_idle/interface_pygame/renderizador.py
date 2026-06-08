@@ -7,6 +7,7 @@
 # =============================================================================
 
 import math
+import time
 import pygame
 
 import economia
@@ -18,7 +19,10 @@ from constantes import (
     CATEGORIAS_ORDEM, NIVEL_MAXIMO,
     LIMIAR_REVOLUCAO_BASE, FATOR_LIMIAR_REVOLUCAO, REVOLUCOES_P_ASCENSAO,
 )
-from interface_pygame.ui_estado import registrar_botao, limpar_botoes
+from interface_pygame.ui_estado import (
+    registrar_botao, limpar_botoes,
+    obter_particulas, obter_flash,
+)
 
 __all__ = [
     'inicializar_janela',
@@ -113,7 +117,7 @@ def fechar_janela():
 # ---------------------------------------------------------------------------
 # Entry point de renderização
 # ---------------------------------------------------------------------------
-def renderizar_frame(janela, eco, upg, prog, mensagens):
+def renderizar_frame(janela, eco, upg, prog, mensagens, mouse_pos=(0, 0)):
     """
     Desenha um frame completo do jogo.
     Parâmetros:
@@ -122,6 +126,7 @@ def renderizar_frame(janela, eco, upg, prog, mensagens):
         upg       (dict) — estado de upgrades
         prog      (dict) — estado de progresso
         mensagens (list) — strings de feedback recentes
+        mouse_pos (tuple) — posição atual do mouse para hover
     Retornos:
         (0, None)
     """
@@ -133,10 +138,13 @@ def renderizar_frame(janela, eco, upg, prog, mensagens):
     _, sc_upg = obter_scroll('upgrades')
 
     _hud(janela, eco, prog)
-    _painel_geradores(janela, eco, upg, sc_ger)
-    _painel_upgrades(janela, eco, upg, sc_upg)
-    _painel_info(janela, eco, upg, prog, mensagens)
-    _bottom_bar(janela)
+    _painel_geradores(janela, eco, upg, sc_ger, mouse_pos)
+    _painel_upgrades(janela, eco, upg, sc_upg, mouse_pos)
+    _painel_info(janela, eco, upg, prog, mensagens, mouse_pos)
+    _bottom_bar(janela, mouse_pos)
+
+    _desenhar_flash(janela)
+    _desenhar_particulas(janela)
 
     pygame.display.flip()
     return (0, None)
@@ -158,8 +166,15 @@ def _hud(janela, eco, prog):
     _, ps = display.formatar_numero(pontos)
     _, ts = display.formatar_numero(taxa)
 
-    # Pontos grandes
-    surf = _f['pts'].render(f'{ps}  pts', True, GOLD)
+    # Pontos grandes — pulsa levemente em brilho com base no tempo
+    t = time.time()
+    pulse = 0.5 + 0.5 * math.sin(t * 2.5)
+    pts_cor = (
+        int(GOLD[0]),
+        int(GOLD[1] * (0.85 + 0.15 * pulse)),
+        int(GOLD[2] * (0.5 + 0.5 * pulse)),
+    )
+    surf = _f['pts'].render(f'{ps}  pts', True, pts_cor)
     janela.blit(surf, (20, 16))
 
     # Taxa
@@ -204,7 +219,7 @@ def _hud(janela, eco, prog):
 # ---------------------------------------------------------------------------
 # Painel esquerdo — GERADORES
 # ---------------------------------------------------------------------------
-def _painel_geradores(janela, eco, upg, scroll_y):
+def _painel_geradores(janela, eco, upg, scroll_y, mouse_pos=(0, 0)):
     x0 = GER_X
     y0 = HUD_H
     w  = GER_W
@@ -243,14 +258,14 @@ def _painel_geradores(janela, eco, upg, scroll_y):
 
             if _visivel(y_cur, y0 + TITULO_H, y0 + h):
                 _linha_gerador(janela, x0, y_cur, w, id_ger, dados,
-                               eco, fatores, cor_cat, scroll_y)
+                               eco, fatores, cor_cat, scroll_y, mouse_pos)
             y_cur += ROW_GER
 
     janela.set_clip(None)
 
 
 
-def _linha_gerador(janela, x0, y, w, id_ger, dados, eco, fatores, cor, scroll_y):
+def _linha_gerador(janela, x0, y, w, id_ger, dados, eco, fatores, cor, scroll_y, mouse_pos=(0, 0)):
     cod_blq, _ = economia.calcular_custo_gerador(eco, id_ger)
     bloqueado  = cod_blq == -4
 
@@ -286,9 +301,20 @@ def _linha_gerador(janela, x0, y, w, id_ger, dados, eco, fatores, cor, scroll_y)
     btn_w, btn_h = 82, 32
     btn_x = x0 + w - btn_w - PAD
     btn_y = y + (ROW_GER - btn_h) // 2
-    btn_cor = GREEN if pode else GREEN_DIM
     btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
-    pygame.draw.rect(janela, btn_cor, btn_rect, border_radius=5)
+
+    if pode:
+        t = time.time()
+        pulse = 0.55 + 0.45 * math.sin(t * 3.5)
+        btn_cor = (int(GREEN[0] * pulse), int(GREEN[1] * (0.7 + 0.3 * pulse)), int(GREEN[2] * pulse))
+        hover   = btn_rect.collidepoint(mouse_pos)
+        if hover:
+            btn_cor = _clarear(btn_cor, 1.35)
+        pygame.draw.rect(janela, btn_cor, btn_rect, border_radius=5)
+        if hover:
+            pygame.draw.rect(janela, WHITE, btn_rect, width=1, border_radius=5)
+    else:
+        pygame.draw.rect(janela, GREEN_DIM, btn_rect, border_radius=5)
 
     _, cs_s = display.formatar_numero(custo)
     surf = _f['btn'].render(f'+1', True, WHITE)
@@ -305,7 +331,7 @@ def _linha_gerador(janela, x0, y, w, id_ger, dados, eco, fatores, cor, scroll_y)
 # ---------------------------------------------------------------------------
 # Painel central — UPGRADES
 # ---------------------------------------------------------------------------
-def _painel_upgrades(janela, eco, upg, scroll_y):
+def _painel_upgrades(janela, eco, upg, scroll_y, mouse_pos=(0, 0)):
     x0 = UPG_X
     y0 = HUD_H
     w  = UPG_W
@@ -339,7 +365,7 @@ def _painel_upgrades(janela, eco, upg, scroll_y):
             y_cur += 22
 
         if _visivel(y_cur, y0 + TITULO_H, y0 + h):
-            _linha_upgrade(janela, x0, y_cur, w, item, eco, upg)
+            _linha_upgrade(janela, x0, y_cur, w, item, eco, upg, mouse_pos)
         y_cur += ROW_UPG
 
     janela.set_clip(None)
@@ -369,7 +395,7 @@ def _itens_upgrade(eco, upg):
     return resultado
 
 
-def _linha_upgrade(janela, x0, y, w, item, eco, upg):
+def _linha_upgrade(janela, x0, y, w, item, eco, upg, mouse_pos=(0, 0)):
     comprado = item.get('comprado', False)
     pode     = item.get('pode', False)
 
@@ -397,13 +423,24 @@ def _linha_upgrade(janela, x0, y, w, item, eco, upg):
         btn_w, btn_h = 100, 28
         btn_x = x0 + w - btn_w - PAD
         btn_y = y + (ROW_UPG - btn_h) // 2
-        btn_cor = GREEN if pode else GREEN_DIM
         btn_rect = pygame.Rect(btn_x, btn_y, btn_w, btn_h)
-        pygame.draw.rect(janela, btn_cor, btn_rect, border_radius=5)
+
+        if pode:
+            t = time.time()
+            pulse = 0.55 + 0.45 * math.sin(t * 3.5 + 1.2)
+            btn_cor = (int(GREEN[0] * pulse), int(GREEN[1] * (0.7 + 0.3 * pulse)), int(GREEN[2] * pulse))
+            hover   = btn_rect.collidepoint(mouse_pos)
+            if hover:
+                btn_cor = _clarear(btn_cor, 1.35)
+            pygame.draw.rect(janela, btn_cor, btn_rect, border_radius=5)
+            if hover:
+                pygame.draw.rect(janela, WHITE, btn_rect, width=1, border_radius=5)
+            registrar_botao(btn_rect, f'comprar upgrade {item["id"]}')
+        else:
+            pygame.draw.rect(janela, GREEN_DIM, btn_rect, border_radius=5)
+
         surf = _f['btn'].render(cs, True, WHITE)
         janela.blit(surf, (btn_x + 6, btn_y + 7))
-        if pode:
-            registrar_botao(btn_rect, f'comprar upgrade {item["id"]}')
 
     pygame.draw.line(janela, BORDER, (x0, y + ROW_UPG - 1), (x0 + w, y + ROW_UPG - 1))
 
@@ -411,7 +448,7 @@ def _linha_upgrade(janela, x0, y, w, item, eco, upg):
 # ---------------------------------------------------------------------------
 # Painel direito — INFO + MENSAGENS
 # ---------------------------------------------------------------------------
-def _painel_info(janela, eco, upg, prog, mensagens):
+def _painel_info(janela, eco, upg, prog, mensagens, mouse_pos=(0, 0)):
     x0 = INFO_X
     y0 = HUD_H
     w  = INFO_W
@@ -486,7 +523,7 @@ def _painel_info(janela, eco, upg, prog, mensagens):
         janela.blit(surf, (x0 + PAD, y))
         y += 20
         btn = _botao_acao(janela, x0 + PAD, y, w - PAD*2, 36,
-                          '🔁  EXECUTAR REVOLUÇÃO', ORANGE, 'revolucao')
+                          '🔁  EXECUTAR REVOLUÇÃO', ORANGE, 'revolucao', mouse_pos)
         y += 44
     else:
         falta = max(0, limiar_rev - pontos_max)
@@ -510,7 +547,7 @@ def _painel_info(janela, eco, upg, prog, mensagens):
         janela.blit(surf, (x0 + PAD, y))
         y += 20
         _botao_acao(janela, x0 + PAD, y, w - PAD*2, 36,
-                    '⬆  EXECUTAR ASCENSÃO', PURPLE, 'ascensao')
+                    '⬆  EXECUTAR ASCENSÃO', PURPLE, 'ascensao', mouse_pos)
         y += 44
     else:
         faltam = max(0, REVOLUCOES_P_ASCENSAO - num_rev)
@@ -541,7 +578,7 @@ def _painel_info(janela, eco, upg, prog, mensagens):
 # ---------------------------------------------------------------------------
 # Bottom bar
 # ---------------------------------------------------------------------------
-def _bottom_bar(janela):
+def _bottom_bar(janela, mouse_pos=(0, 0)):
     y0 = H - BOTTOM_H
     pygame.draw.rect(janela, HDR_BG, (0, y0, W, BOTTOM_H))
     pygame.draw.line(janela, BORDER, (0, y0), (W, y0), 1)
@@ -549,12 +586,9 @@ def _bottom_bar(janela):
     surf = _f['small'].render('Salvo automaticamente ao fechar', True, GREY)
     janela.blit(surf, (PAD, y0 + 10))
 
-    # Botão salvar
-    _botao_acao(janela, W - 360, y0 + 4, 100, 28, 'SALVAR', BLUE,  '__salvar__')
-    # Botão novo jogo
-    _botao_acao(janela, W - 240, y0 + 4, 110, 28, 'NOVO JOGO', RED,   'novo jogo')
-    # Botão sair
-    _botao_acao(janela, W - 120, y0 + 4,  88, 28, 'SAIR',      GREY,  'sair')
+    _botao_acao(janela, W - 360, y0 + 4, 100, 28, 'SALVAR',   BLUE, '__salvar__', mouse_pos)
+    _botao_acao(janela, W - 240, y0 + 4, 110, 28, 'NOVO JOGO', RED,  'novo jogo', mouse_pos)
+    _botao_acao(janela, W - 120, y0 + 4,  88, 28, 'SAIR',     GREY,  'sair',      mouse_pos)
 
 
 # ---------------------------------------------------------------------------
@@ -574,11 +608,17 @@ def _label_valor(janela, x, y, w, label, valor, cor_valor):
     janela.blit(surf_v, (x + w - surf_v.get_width(), y))
 
 
-def _botao_acao(janela, x, y, w, h, texto, cor, cmd):
-    rect = pygame.Rect(x, y, w, h)
-    pygame.draw.rect(janela, _escurecer(cor, 0.45), rect, border_radius=5)
-    pygame.draw.rect(janela, cor, rect, width=1, border_radius=5)
-    surf = _f['btn'].render(texto, True, cor)
+def _botao_acao(janela, x, y, w, h, texto, cor, cmd, mouse_pos=(0, 0)):
+    rect   = pygame.Rect(x, y, w, h)
+    hover  = rect.collidepoint(mouse_pos)
+    bg_cor = _escurecer(cor, 0.45)
+    brd_cor = _clarear(cor, 1.3) if hover else cor
+    txt_cor = WHITE if hover else cor
+    if hover:
+        bg_cor = _escurecer(cor, 0.65)
+    pygame.draw.rect(janela, bg_cor,  rect, border_radius=5)
+    pygame.draw.rect(janela, brd_cor, rect, width=1 + int(hover), border_radius=5)
+    surf = _f['btn'].render(texto, True, txt_cor)
     cx   = x + (w - surf.get_width())  // 2
     cy   = y + (h - surf.get_height()) // 2
     janela.blit(surf, (cx, cy))
@@ -588,6 +628,31 @@ def _botao_acao(janela, x, y, w, h, texto, cor, cmd):
 
 def _escurecer(cor, fator):
     return tuple(max(0, int(c * fator)) for c in cor)
+
+
+def _clarear(cor, fator):
+    return tuple(min(255, int(c * fator)) for c in cor)
+
+
+def _desenhar_particulas(janela):
+    """Desenha todos os textos flutuantes ativos por cima de tudo."""
+    _, particulas = obter_particulas()
+    for p in particulas:
+        frac  = p['vida'] / p['vida_max']
+        alpha = int(255 * frac)
+        surf  = _f['btn'].render(p['texto'], True, p['cor'])
+        surf.set_alpha(alpha)
+        janela.blit(surf, (int(p['x'] - surf.get_width() // 2), int(p['y'])))
+
+
+def _desenhar_flash(janela):
+    """Desenha o overlay de flash de revolução/ascensão."""
+    _, flash = obter_flash()
+    if flash is None or flash['alpha'] <= 0:
+        return
+    overlay = pygame.Surface((W, H), pygame.SRCALPHA)
+    overlay.fill((*flash['cor'], int(flash['alpha'])))
+    janela.blit(overlay, (0, 0))
 
 
 def _visivel(y, y_min, y_max):

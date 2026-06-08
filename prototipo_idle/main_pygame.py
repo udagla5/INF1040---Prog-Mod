@@ -22,7 +22,11 @@ from main import processar_comando          # reusa a lógica de comandos já te
 
 # Nova camada de interface (apenas desenho + estado de UI)
 from interface_pygame.renderizador import inicializar_janela, fechar_janela, renderizar_frame
-from interface_pygame.ui_estado    import inicializar_ui, botao_em, atualizar_scroll
+from interface_pygame.ui_estado    import (
+    inicializar_ui, botao_em, atualizar_scroll,
+    adicionar_particula, atualizar_particulas,
+    registrar_flash, atualizar_flash,
+)
 
 # ---------------------------------------------------------------------------
 # Helpers internos
@@ -66,26 +70,26 @@ def _processar_clique(pos, eco, upg, prog):
     """
     Identifica o botão clicado e executa o comando correspondente.
     Retornos:
-        (codigo, eco, upg, prog, mensagem, acao_especial)
+        (codigo, eco, upg, prog, mensagem, acao_especial, cmd)
         acao_especial: None | 'sair' | 'salvar' | 'novo_jogo'
     """
     _, cmd = botao_em(pos)
     if not cmd:
-        return (0, eco, upg, prog, '', None)
+        return (0, eco, upg, prog, '', None, '')
 
     if cmd == 'sair':
-        return (0, eco, upg, prog, '', 'sair')
+        return (0, eco, upg, prog, '', 'sair', cmd)
 
     if cmd == '__salvar__':
         persistencia.salvar_jogo(eco, upg, prog)
-        return (0, eco, upg, prog, '[SAVE] Jogo salvo!', 'salvar')
+        return (0, eco, upg, prog, '[SAVE] Jogo salvo!', 'salvar', cmd)
 
     if cmd == 'novo jogo':
-        return (0, eco, upg, prog, '', 'novo_jogo')
+        return (0, eco, upg, prog, '', 'novo_jogo', cmd)
 
     # Qualquer outro comando passa pelo processador testado de main.py
     codigo, eco, upg, prog, msg = processar_comando(cmd, eco, upg, prog)
-    return (codigo, eco, upg, prog, msg, None)
+    return (codigo, eco, upg, prog, msg, None, cmd)
 
 
 def _scroll_para_painel(pos_x, largura_ger, x_upg, largura_upg):
@@ -132,9 +136,15 @@ def main():
 
         for marco in novos_marcos:
             mensagens.insert(0, f'$ Marco atingido: {marco}')
+            registrar_flash('marco')
         if vitoria and '$$$ PONTO ÔMEGA' not in (mensagens[0] if mensagens else ''):
             mensagens.insert(0, '$$$ PONTO ÔMEGA ATINGIDO! VITÓRIA!')
+            registrar_flash('marco')
         mensagens = mensagens[:14]
+
+        # ── Atualiza efeitos visuais ─────────────────────────────────────
+        atualizar_particulas(delta)
+        atualizar_flash(delta)
 
         # ── Eventos ─────────────────────────────────────────────────────
         for event in pygame.event.get():
@@ -150,11 +160,29 @@ def main():
                     break
 
             if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-                cod, eco, upg, prog, msg, acao = _processar_clique(
+                cod, eco, upg, prog, msg, acao, cmd = _processar_clique(
                     event.pos, eco, upg, prog)
                 if msg:
                     mensagens.insert(0, msg)
                     mensagens = mensagens[:14]
+
+                # Efeitos de game feel por tipo de ação
+                if cod == 0 and cmd and '[ERRO]' not in msg:
+                    if cmd == 'revolucao':
+                        registrar_flash('revolucao')
+                        adicionar_particula(event.pos[0], event.pos[1] - 20,
+                                            '🔁 REVOLUÇÃO!', (230, 140, 40))
+                    elif cmd == 'ascensao':
+                        registrar_flash('ascensao')
+                        adicionar_particula(event.pos[0], event.pos[1] - 20,
+                                            '⬆ ASCENSÃO!', (160, 80, 230))
+                    elif cmd.startswith('comprar gerador') and msg and '[ERRO]' not in msg:
+                        adicionar_particula(event.pos[0], event.pos[1],
+                                            '+1', (60, 200, 90))
+                    elif cmd.startswith('comprar upgrade') and msg and '[ERRO]' not in msg:
+                        adicionar_particula(event.pos[0], event.pos[1],
+                                            '× upgrade!', (255, 200, 55))
+
                 if acao == 'sair':
                     persistencia.salvar_jogo(eco, upg, prog)
                     rodando = False
@@ -179,8 +207,9 @@ def main():
             break
 
         # ── Renderização ────────────────────────────────────────────────
-        renderizar_frame(janela, eco, upg, prog, mensagens)
-        clock.tick(30)
+        mouse_pos = pygame.mouse.get_pos()
+        renderizar_frame(janela, eco, upg, prog, mensagens, mouse_pos)
+        clock.tick(60)
 
     fechar_janela()
 
