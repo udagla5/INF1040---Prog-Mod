@@ -273,18 +273,20 @@ def _linha_gerador(janela, x0, y, w, id_ger, dados, eco, fatores, cor, scroll_y,
     pygame.draw.rect(janela, bg, (x0, y, w, ROW_GER - 1))
 
     if bloqueado:
-        surf = _f['nome'].render(f'🔒 {dados["nome"]}', True, DARK_GREY)
+        surf = _f['nome'].render(f'{dados["nome"]}', True, DARK_GREY)
         janela.blit(surf, (x0 + PAD, y + 18))
         return
 
     _, qtd   = economia.obter_quantidade_gerador(eco, id_ger)
     _, custo = economia.calcular_custo_gerador(eco, id_ger)
     _, pode  = economia.pode_gastar(eco, custo)
-    fator    = fatores.get(id_ger, 1.0)
-    prod_tot = dados['prod_base'] * fator * (qtd or 0)
+    fator      = fatores.get(id_ger, 1.0)
+    prod_unit  = dados['prod_base'] * fator
+    prod_tot   = prod_unit * (qtd or 0)
 
-    _, cs = display.formatar_numero(custo)
-    _, ps = display.formatar_numero(prod_tot)
+    _, cs  = display.formatar_numero(custo)
+    _, ps  = display.formatar_numero(prod_tot)
+    _, pus = display.formatar_numero(prod_unit)
 
     # Nome + qtd
     nome_cor = cor if qtd > 0 else GREY
@@ -293,8 +295,11 @@ def _linha_gerador(janela, x0, y, w, id_ger, dados, eco, fatores, cor, scroll_y,
     surf = _f['hdr'].render(f'× {qtd}', True, WHITE)
     janela.blit(surf, (x0 + PAD, y + 26))
 
-    # Prod
-    surf = _f['small'].render(f'{ps}/s', True, TEAL)
+    # Prod total (se tiver algum) + prod por unidade
+    if qtd > 0:
+        surf = _f['small'].render(f'{ps}/s  (+{pus}/s por un.)', True, TEAL)
+    else:
+        surf = _f['small'].render(f'+{pus}/s por unidade', True, GREY)
     janela.blit(surf, (x0 + PAD + 80, y + 28))
 
     # Botão [+1]
@@ -583,12 +588,12 @@ def _bottom_bar(janela, mouse_pos=(0, 0)):
     pygame.draw.rect(janela, HDR_BG, (0, y0, W, BOTTOM_H))
     pygame.draw.line(janela, BORDER, (0, y0), (W, y0), 1)
 
-    surf = _f['small'].render('Salvo automaticamente ao fechar', True, GREY)
+    surf = _f['small'].render('O jogo é salvo apenas ao clicar em "Salvar e Sair"', True, GREY)
     janela.blit(surf, (PAD, y0 + 10))
 
-    _botao_acao(janela, W - 360, y0 + 4, 100, 28, 'SALVAR',   BLUE, '__salvar__', mouse_pos)
-    _botao_acao(janela, W - 240, y0 + 4, 110, 28, 'NOVO JOGO', RED,  'novo jogo', mouse_pos)
-    _botao_acao(janela, W - 120, y0 + 4,  88, 28, 'SAIR',     GREY,  'sair',      mouse_pos)
+    # _botao_acao(janela, W - 360, y0 + 4, 100, 28, 'SALVAR',   BLUE, '__salvar__', mouse_pos)
+    _botao_acao(janela, W - 320, y0 + 4, 140, 28, 'NOVO JOGO', RED,  'novo jogo', mouse_pos)
+    _botao_acao(janela, W - 170, y0 + 4, 138, 28, 'SALVAR E SAIR', GREY, 'sair', mouse_pos)
 
 
 # ---------------------------------------------------------------------------

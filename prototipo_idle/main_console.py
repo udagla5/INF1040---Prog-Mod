@@ -82,14 +82,14 @@ def processar_comando(cmd, estado_eco, estado_upg, estado_prog):
         return (-1, estado_eco, estado_upg, estado_prog,
                 "[ERRO] Revoluções insuficientes para Ascensão.")
 
-    # novo jogo
+    # novo jogo — reinicia apenas na memória; o arquivo só é sobrescrito ao sair
     if len(partes) == 2 and partes[0] == 'novo' and partes[1] == 'jogo':
-        persistencia.deletar_save()
         _, eco  = economia.inicializar_estado()
         _, upg  = upgrades.inicializar_upgrades()
         _, prog = progresso.inicializar_progresso()
         _, eco  = economia.adicionar_gerador(eco, 'mineradora_vermelha')
-        return (0, eco, upg, prog, "[OK] Novo jogo iniciado!")
+        _, eco  = economia.adicionar_gerador(eco, 'mineradora_vermelha')
+        return (0, eco, upg, prog, "[OK] Novo jogo iniciado! O save anterior será sobrescrito ao sair.")
 
     return (-1, estado_eco, estado_upg, estado_prog,
             f"[ERRO] Comando desconhecido: '{cmd}'. Digite 'ajuda'.")
@@ -104,7 +104,7 @@ def _mostrar_ajuda():
         "  ascensao               executa a Ascensão (se elegível)\n"
         "  novo jogo              apaga o save e reinicia\n"
         "  ajuda                  exibe esta mensagem\n"
-        "  sair                   salva e encerra\n"
+        "  salvar e sair          salva e encerra\n"
         "\n"
         "  [Dica] Pressione Enter sem digitar nada para atualizar o painel."
     )
@@ -170,7 +170,7 @@ def _loop_principal():
         except (KeyboardInterrupt, EOFError):
             cmd = "sair"
 
-        if cmd.lower() == "sair":
+        if cmd.lower() in ("sair", "salvar e sair"):
             persistencia.salvar_jogo(eco, upg, prog)
             _limpar_tela()
             print("  Jogo salvo. Até logo!")

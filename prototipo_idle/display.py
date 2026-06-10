@@ -57,10 +57,10 @@ def renderizar_pontos(estado_eco):
     _, ts     = formatar_numero(taxa)
     sep = "═" * 54
     linhas = [
-        f"╔{sep}╗",
-        f"║  PONTOS : {ps:<18}  TAXA: +{ts}/s{'':<8}║",
-        f"║  Mult   : ×{mult:<8.2f}       Expoente: ^{exp:<8.2f}    ║",
-        f"╚{sep}╝",
+        f"╔{sep}",
+        f"║  PONTOS : {ps:<18}  TAXA: +{ts}/s{'':<8}",
+        f"║  Mult   : ×{mult:<8.2f}       Expoente: ^{exp:<8.2f}    ",
+        f"╚{sep}",
     ]
     return (0, '\n'.join(linhas))
 
@@ -186,7 +186,7 @@ def montar_menu_comando():
         "  │  ascensao                — executa Ascensão (se elegível)",
         "  │  status                  — exibe painel completo",
         "  │  novo jogo               — apaga o save e reinicia",
-        "  │  sair                    — salva e encerra",
+        "  │  salvar e sair           — salva e encerra",
         f"  └{'─'*52}",
     ]
     return (0, '\n'.join(cmds))

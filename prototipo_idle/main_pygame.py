@@ -80,10 +80,6 @@ def _processar_clique(pos, eco, upg, prog):
     if cmd == 'sair':
         return (0, eco, upg, prog, '', 'sair', cmd)
 
-    if cmd == '__salvar__':
-        persistencia.salvar_jogo(eco, upg, prog)
-        return (0, eco, upg, prog, '[SAVE] Jogo salvo!', 'salvar', cmd)
-
     if cmd == 'novo jogo':
         return (0, eco, upg, prog, '', 'novo_jogo', cmd)
 
@@ -188,9 +184,13 @@ def main():
                     rodando = False
                     break
                 elif acao == 'novo_jogo':
-                    persistencia.deletar_save()
-                    eco, upg, prog, m = _inicializar_jogo()
-                    mensagens = [m]
+                    # Reinicia só na memória — o arquivo é sobrescrito ao sair
+                    _, eco  = economia.inicializar_estado()
+                    _, upg  = upg_mod.inicializar_upgrades()
+                    _, prog = prog_mod.inicializar_progresso()
+                    _, eco  = economia.adicionar_gerador(eco, 'mineradora_vermelha')
+                    _, eco  = economia.adicionar_gerador(eco, 'mineradora_vermelha')
+                    mensagens = ['Novo jogo iniciado! O save será sobrescrito ao sair.']
                     inicializar_ui()
 
             if event.type == pygame.MOUSEWHEEL:
