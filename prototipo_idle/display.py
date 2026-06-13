@@ -1,7 +1,7 @@
 # =============================================================================
 # display.py — TAD Display
 # Responsável: Carlos Eduardo Pimentel Bernardo
-# INF1040 · 2026.1 · Grupo 3WB
+# INF1040 - 2026.1 - Grupo 2
 # REGRA ABSOLUTA: zero chamadas a print() ou input() neste módulo.
 # =============================================================================
 
@@ -29,6 +29,19 @@ _SUFIXOS = [
 ]
 
 def _status_upgrade(id_upgrade, estado_upg, estado_eco):
+    """
+    Determina o status de exibição de um upgrade: comprado, disponível ou inacessível.
+
+    Assertiva de entrada:
+        id_upgrade (str)  — deve existir no catálogo de estado_upg
+        estado_upg (dict) — estado válido retornado por upgrades.inicializar_upgrades
+        estado_eco (dict) — estado válido retornado por economia.inicializar_estado
+
+    Assertiva de saída:
+        'comprado'    — upgrade já foi comprado
+        'disponivel'  — não comprado e o jogador tem pontos suficientes
+        'inacessivel' — não comprado e pontos insuficientes
+    """
     comprados_ids = [u['id'] for u in upgrades.listar_comprados(estado_upg)[1]]
     if id_upgrade in comprados_ids:
         return 'comprado'
@@ -39,6 +52,17 @@ def _status_upgrade(id_upgrade, estado_upg, estado_eco):
 # Interface pública
 # ---------------------------------------------------------------------------
 def formatar_numero(valor):
+    """
+    Formata um número em string legível com sufixo (K, M, B, T…).
+
+    Assertiva de entrada:
+        valor (int ou float) — deve ser >= 0
+
+    Assertiva de saída:
+        ( 0, str) — string formatada: sufixo se >= 1000, inteiro sem decimal se
+                    inteiro exato, ou uma casa decimal caso contrário
+        (-1, None) — valor não é numérico ou é negativo
+    """
     if not isinstance(valor, (int, float)) or valor < 0:
         return (-1, None)
     for limiar, suf in _SUFIXOS:
@@ -49,6 +73,16 @@ def formatar_numero(valor):
     return (0, f"{valor:.1f}")
 
 def renderizar_pontos(estado_eco):
+    """
+    Monta a string do painel de pontos, taxa, multiplicador e expoente.
+
+    Assertiva de entrada:
+        estado_eco (dict) — estado válido retornado por economia.inicializar_estado
+
+    Assertiva de saída:
+        (0, str) — bloco de texto multilinha pronto para exibição no terminal;
+                   nunca retorna código de erro
+    """
     _, pontos = economia.obter_pontos(estado_eco)
     _, taxa   = economia.calcular_taxa_total(estado_eco)
     _, mult   = economia.obter_multiplicador_revolucao(estado_eco)
@@ -65,6 +99,17 @@ def renderizar_pontos(estado_eco):
     return (0, '\n'.join(linhas))
 
 def renderizar_geradores(estado_eco, estado_upg):
+    """
+    Monta a string com a lista de todos os geradores por categoria.
+
+    Assertiva de entrada:
+        estado_eco (dict) — estado válido retornado por economia.inicializar_estado
+        estado_upg (dict) — estado válido retornado por upgrades.inicializar_upgrades
+
+    Assertiva de saída:
+        (0, str) — bloco de texto multilinha com nome, quantidade, custo e
+                   produção de cada gerador; geradores bloqueados são sinalizados
+    """
     _, fatores = upgrades.calcular_fatores_por_gerador(estado_upg)
     linhas     = []
     for cat in CATEGORIAS_ORDEM:
@@ -91,6 +136,18 @@ def renderizar_geradores(estado_eco, estado_upg):
     return (0, '\n'.join(linhas))
 
 def renderizar_upgrades(estado_upg, estado_eco):
+    """
+    Monta a string com a lista de upgrades agrupados por gerador alvo.
+
+    Assertiva de entrada:
+        estado_upg (dict) — estado válido retornado por upgrades.inicializar_upgrades
+        estado_eco (dict) — estado válido retornado por economia.inicializar_estado
+
+    Assertiva de saída:
+        (0, str) — bloco de texto multilinha com nome, fator, custo e status
+                   de cada upgrade; status indicado por ícone ($=comprado,
+                   O=disponível, X=inacessível)
+    """
     linhas = ["\n  ┌─ UPGRADES " + "─" * 40]
     icones = {'comprado': '$', 'disponivel': 'O', 'inacessivel': 'X'}
     vistos = set()
@@ -111,6 +168,16 @@ def renderizar_upgrades(estado_upg, estado_eco):
     return (0, '\n'.join(linhas))
 
 def renderizar_progresso(estado_prog):
+    """
+    Monta a string do painel de progresso: nível, cristais, marcos atingidos.
+
+    Assertiva de entrada:
+        estado_prog (dict) — estado válido retornado por progresso.inicializar_progresso
+
+    Assertiva de saída:
+        (0, str) — bloco de texto multilinha com nível, revoluções, ascensões,
+                   cristais, fragmentos, últimos 5 marcos e mensagem de vitória se aplicável
+    """
     nivel     = estado_prog.get('nivel', 1)
     cristais  = estado_prog.get('cristais_revolucao', 0)
     fragmen   = estado_prog.get('fragmentos_ascensao', 0)
@@ -142,6 +209,18 @@ def renderizar_progresso(estado_prog):
     return (0, '\n'.join(linhas))
 
 def renderizar_resets(estado_eco, estado_prog):
+    """
+    Monta a string do painel de resets: elegibilidade para revolução e ascensão.
+
+    Assertiva de entrada:
+        estado_eco  (dict) — estado válido retornado por economia.inicializar_estado
+        estado_prog (dict) — estado válido retornado por progresso.inicializar_progresso
+
+    Assertiva de saída:
+        (0, str) — bloco de texto multilinha indicando disponibilidade de Revolução
+                   e Ascensão, cristais estimados a ganhar, e quanto falta para
+                   cada condição quando não elegível
+    """
     _, pontos_max  = economia.obter_pontos_run_max(estado_eco)
     num_rev        = estado_prog.get('num_revolucoes', 0)
     num_frag       = estado_prog.get('fragmentos_ascensao', 0)
@@ -176,6 +255,16 @@ def renderizar_resets(estado_eco, estado_prog):
     return (0, '\n'.join(linhas))
 
 def montar_menu_comando():
+    """
+    Monta a string do menu de comandos disponíveis para o jogador.
+
+    Assertiva de entrada:
+        (nenhuma)
+
+    Assertiva de saída:
+        (0, str) — bloco de texto multilinha listando todos os comandos aceitos
+                   por main_console.py
+    """
     cmds = [
         "\n  ┌─ COMANDOS " + "─" * 40,
         "  │  comprar gerador <id>    — compra 1 unidade do gerador",
@@ -192,6 +281,18 @@ def montar_menu_comando():
     return (0, '\n'.join(cmds))
 
 def renderizar_painel(estado_eco, estado_upg, estado_prog):
+    """
+    Monta o painel completo do jogo concatenando todos os sub-painéis.
+
+    Assertiva de entrada:
+        estado_eco  (dict) — estado válido retornado por economia.inicializar_estado
+        estado_upg  (dict) — estado válido retornado por upgrades.inicializar_upgrades
+        estado_prog (dict) — estado válido retornado por progresso.inicializar_progresso
+
+    Assertiva de saída:
+        (0, str) — string com pontos, geradores, progresso, resets e menu
+                   separados por quebras de linha; pronta para print() em main
+    """
     _, s_pontos  = renderizar_pontos(estado_eco)
     _, s_gers    = renderizar_geradores(estado_eco, estado_upg)
     _, s_prog    = renderizar_progresso(estado_prog)

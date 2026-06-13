@@ -1,7 +1,7 @@
 # =============================================================================
 # persistencia.py — Persistência de dados entre execuções
 # Responsável: Nicholas Esteves Ferreira
-# INF1040 · 2026.1 · Grupo 3WB
+# INF1040 - 2026.1 - Grupo 2
 #
 # ÚNICO módulo que lê/escreve arquivos.
 # Os TADs (economia, upgrades, progresso) NÃO acessam arquivos.
@@ -28,14 +28,14 @@ def salvar_jogo(estado_eco, estado_upg, estado_prog):
     """
     Grava o estado completo do jogo em arquivo JSON.
 
-    Parâmetros:
-        estado_eco  (dict) — estado retornado por economia
-        estado_upg  (dict) — estado retornado por upgrades
-        estado_prog (dict) — estado retornado por progresso
+    Assertiva de entrada:
+        estado_eco  (dict) — estado válido retornado por economia.inicializar_estado
+        estado_upg  (dict) — estado válido retornado por upgrades.inicializar_upgrades
+        estado_prog (dict) — estado válido retornado por progresso.inicializar_progresso
 
-    Retornos:
-        ( 0, None) — sucesso
-        (-1, None) — erro ao gravar (ex: sem permissão)
+    Assertiva de saída:
+        ( 0, None) — arquivo saves/save.json criado/sobrescrito com sucesso
+        (-1, None) — falha ao gravar (ex: sem permissão de escrita no diretório)
     """
     try:
         os.makedirs('saves', exist_ok=True)
@@ -52,11 +52,14 @@ def salvar_jogo(estado_eco, estado_upg, estado_prog):
 
 def carregar_jogo():
     """
-    Lê o estado salvo do arquivo JSON.
+    Lê o estado salvo do arquivo JSON e reconstrói os três estados.
 
-    Retornos:
-        ( 0, (dict_eco, dict_upg, dict_prog)) — sucesso
-        (-1, None)                             — arquivo não encontrado ou corrompido
+    Assertiva de entrada:
+        (nenhuma) — o arquivo saves/save.json pode ou não existir
+
+    Assertiva de saída:
+        ( 0, (dict_eco, dict_upg, dict_prog)) — estados carregados com sucesso
+        (-1, None) — arquivo não encontrado ou JSON corrompido/inválido
     """
     try:
         if not os.path.isfile(_ARQUIVO_SAVE):
@@ -72,21 +75,27 @@ def carregar_jogo():
 
 def existe_save():
     """
-    Verifica se existe um arquivo de save.
+    Verifica se existe um arquivo de save sem tentar lê-lo.
 
-    Retornos:
-        (0, True ) — save encontrado
-        (0, False) — sem save
+    Assertiva de entrada:
+        (nenhuma)
+
+    Assertiva de saída:
+        (0, True)  — o arquivo saves/save.json existe no sistema de arquivos
+        (0, False) — arquivo não encontrado
     """
     return (0, os.path.isfile(_ARQUIVO_SAVE))
 
 def deletar_save():
     """
-    Remove o arquivo de save (usado para novo jogo).
+    Remove o arquivo de save (usado para reiniciar do zero).
 
-    Retornos:
-        ( 0, None) — sucesso ou arquivo já inexistente
-        (-1, None) — erro ao deletar
+    Assertiva de entrada:
+        (nenhuma) — o arquivo pode ou não existir
+
+    Assertiva de saída:
+        ( 0, None) — arquivo removido com sucesso, ou já não existia
+        (-1, None) — erro ao deletar (ex: sem permissão)
     """
     try:
         if os.path.isfile(_ARQUIVO_SAVE):

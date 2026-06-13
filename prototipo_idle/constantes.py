@@ -1,6 +1,6 @@
 # =============================================================================
 # constantes.py — Dados e constantes globais do jogo
-# INF1040 · 2026.1 · Grupo 3WB
+# INF1040 - 2026.1 - Grupo 2
 # Não é um TAD — é um módulo de configuração. Pode ser importado livremente.
 # =============================================================================
 

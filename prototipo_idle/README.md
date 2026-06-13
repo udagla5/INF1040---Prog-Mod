@@ -1,16 +1,17 @@
-# Revolution Idle — INF1040 · 2026.1 · Grupo 3WB
+# Revolution Idle — INF1040 - 2026.1 - Grupo 2
 
 Versão simplificada do jogo incremental *Revolution Idle* em Python procedural puro.
 
 ## Integrantes
 
-| Nome | Módulo responsável | Branch |
-|------|--------------------|--------|
-| Nicholas Esteves Ferreira | `main.py`, `gui.py`, `persistencia.py`, `constantes.py` | `feat/main-persistencia` |
-| Rafael Carvalho Solberg | `economia.py` | `feat/economia` |
-| David Pinto Coelho Benech | `upgrades.py` | `feat/upgrades` |
-| Leonardo Dana Edelsberg | `progresso.py` | `feat/progresso` |
-| Carlos Eduardo Pimentel Bernardo | `display.py` | `feat/display` |
+| Nome | Módulo responsável |
+|------|--------------------|
+| Nicholas Esteves Ferreira | `main_console.py` |
+| Rafael Carvalho Solberg | `economia.py` |
+| David Pinto Coelho Benech | `upgrades.py` |
+| Leonardo Dana Edelsberg | `progresso.py` |
+| Carlos Eduardo Pimentel Bernardo | `display.py`, `constantes.py` |
+| Igor Oliveira de Mello | `main_pygame.py`, `persistencia.py` |
 
 ---
 
@@ -21,32 +22,37 @@ Versão simplificada do jogo incremental *Revolution Idle* em Python procedural 
 git clone https://github.com/<org>/revolution-idle.git
 cd revolution-idle
 
-# Modo terminal (turn-based — recursos acumulam enquanto você lê)
-python main.py
+# Instalar dependência (apenas para o modo pygame)
+pip install pygame
 
-# Modo janela gráfica (real-time — atualiza sozinho a cada 500ms)
-python gui.py
+# Modo terminal (turn-based)
+python main_console.py
+
+# Modo janela pygame (tempo real, 60 fps)
+python main_pygame.py
 
 # Rodar todos os testes
 python test_economia.py
 python test_upgrades.py
 python test_progresso.py
 python test_display.py
+python test_persistencia.py
+python test_main_console.py
 ```
 
-> Requer Python 3.10+. Nenhuma dependência externa — apenas stdlib.
+> Requer Python 3.10+. `pygame` é a única dependência externa (apenas para `main_pygame.py`).
 
 ---
 
 ## Diferença entre os modos
 
-| | `python main.py` | `python gui.py` |
+| | `python main_console.py` | `python main_pygame.py` |
 |---|---|---|
-| Interface | Terminal | Janela tkinter |
-| Atualização | Ao pressionar Enter | Automática (500ms) |
-| Input | `input()` bloqueante | Campo de texto na janela |
+| Interface | Terminal | Janela pygame |
+| Atualização | Ao pressionar Enter | Automática (60 fps) |
+| Input | `input()` bloqueante | Cliques e botões na tela |
 | Efeito idle | Acumula entre comandos | Cresce em tempo real |
-| Compatibilidade | Qualquer terminal | Requer display gráfico |
+| Compatibilidade | Qualquer terminal | Requer pygame instalado |
 
 **Dica modo terminal:** pressione Enter sem digitar nada para ver os recursos acumulados.
 
@@ -56,8 +62,8 @@ python test_display.py
 
 ```
 revolution-idle/
-├── main.py               # Modo terminal (turn-based)
-├── gui.py                # Modo janela gráfica (tkinter real-time)
+├── main_console.py       # Modo terminal (turn-based)
+├── main_pygame.py        # Modo pygame (tempo real, arquivo único)
 ├── economia.py           # TAD Economia — pontos e geradores
 ├── upgrades.py           # TAD Upgrades — catálogo e compras
 ├── progresso.py          # TAD Progresso — nível, marcos, resets
@@ -68,6 +74,8 @@ revolution-idle/
 ├── test_upgrades.py      # 22 testes de upgrades.py
 ├── test_progresso.py     # 28 testes de progresso.py
 ├── test_display.py       # 27 testes de display.py
+├── test_persistencia.py  # 14 testes de persistencia.py
+├── test_main_console.py  # 20 testes de main_console.py
 ├── saves/
 │   └── save.json         # Gerado ao fechar o jogo (ignorado pelo git)
 └── .github/
@@ -84,11 +92,16 @@ revolution-idle/
 |---------|------|
 | `comprar gerador <id>` | Compra 1 unidade do gerador |
 | `comprar upgrade <id>` | Compra o upgrade |
+| `listar geradores` | Exibe todos os geradores com quantidades e custos |
+| `listar upgrades` | Exibe todos os upgrades com status |
+| `status` | Exibe o painel completo |
 | `revolucao` | Executa Revolução (se elegível) |
 | `ascensao` | Executa Ascensão (se elegível) |
 | `novo jogo` | Apaga o save e reinicia |
 | `ajuda` | Exibe os comandos disponíveis |
-| `sair` | Salva e encerra |
+| `sair` / `salvar e sair` | Salva e encerra |
+
+> Os comandos acima funcionam no modo terminal (`main_console.py`). No modo pygame, as mesmas ações são executadas pelos botões na tela.
 
 ### Exemplos de IDs de geradores
 ```
@@ -108,33 +121,6 @@ upgrade_fabrica_vermelha_x2
 
 ---
 
-## Fluxo de trabalho no GitHub
-
-### 1. Criar sua branch
-```bash
-git checkout main && git pull origin main
-git checkout -b feat/<seu-modulo>
-```
-
-### 2. Implementar e testar
-```bash
-python test_<seu_modulo>.py
-# Deve finalizar com: Falhou: 0
-```
-
-### 3. Abrir Pull Request para `main`
-- Use o template automático de PR
-- CI roda os 4 testadores automaticamente
-- PR aprovado somente com CI verde + revisão do CODEOWNER
-
-### 4. Configurar proteção da branch `main`
-Settings → Branches → Add rule → `main`:
-- ✅ Require pull request before merging
-- ✅ Require status checks to pass → selecionar `testes`
-- ✅ Require review from Code Owners
-
----
-
 ## Mecânicas do jogo
 
 | Mecânica | Descrição |
@@ -145,15 +131,3 @@ Settings → Branches → Add rule → `main`:
 | **Ascensão** | Após 10 revoluções, ganha fragmentos → eleva produção a expoente |
 | **Vitória** | Atingir 1×10⁵⁰ pontos (Ponto Ômega) |
 
----
-
-## Critérios de avaliação
-
-| Critério | Pontos |
-|----------|--------|
-| Aplicação funcionando | 2,0 |
-| Testes automatizados completos sem erro | 2,0 |
-| Especificação completa das funções | 2,0 |
-| Modularização de TADs (encapsulamento correto) | 3,0 |
-| Persistência entre execuções | 1,0 |
-| **Total** | **10,0** |

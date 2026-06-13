@@ -1,6 +1,6 @@
 # =============================================================================
 # test_economia.py — Módulo testador de economia.py
-# INF1040 · 2026.1 · Grupo 3WB
+# INF1040 - 2026.1 - Grupo 2
 #
 # REGRAS:
 #   - Importa APENAS economia (e constantes para IDs de geradores)

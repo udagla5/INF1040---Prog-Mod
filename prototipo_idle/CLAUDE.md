@@ -2,61 +2,48 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-## Running the Game
+## Project
 
-Three entry points exist — pick one:
+Revolution Idle — INF1040 - 2026.1 - Grupo 2. A procedural Python incremental game with two front-ends (terminal and pygame). Requires Python 3.10+; pygame is the only non-stdlib dependency (for `main_pygame.py`).
 
-```powershell
-python main.py           # Turn-based terminal mode (press Enter to tick)
-python gui.py            # Real-time terminal UI (auto-ticks every 500ms)
-python main_pygame.py    # Graphical UI (requires pygame)
+## Commands
+
+```bash
+# Run (terminal mode, turn-based)
+python main_console.py
+
+# Run (pygame GUI, real-time at 60 fps)
+python main_pygame.py
+
+# Run individual test suites (each prints "Falhou: 0" on success)
+python test_economia.py
+python test_upgrades.py
+python test_progresso.py
+python test_display.py
 ```
-
-No external packages are required except `pygame` for the graphical mode.
-
-## Running Tests
-
-```powershell
-python test_economia.py   # 39 tests — resource generation & management
-python test_upgrades.py   # 22 tests — upgrade catalog & purchases
-python test_progresso.py  # 28 tests — milestones, revolution, ascension
-python test_display.py    # 27 tests — string formatting & rendering
-```
-
-All tests use Python's built-in `unittest`. CI runs all four on every push (Ubuntu, Python 3.11) via `.github/workflows/tests.yml`.
 
 ## Architecture
 
-The project uses a **TAD (Abstract Data Type)** pattern with strict separation of concerns.
+All game state is **pure-functional**: every TAD function takes state as input and returns `(codigo, novo_estado)` — no mutation, no globals. The `main_console.py` / `main_pygame.py` files are the only orchestrators; they hold references to the three live state dicts (`eco`, `upg`, `prog`) and pass them between TAD calls each tick.
 
-### Core Game Logic (pure Python — no I/O, no side effects)
+### TAD modules (no side effects, no I/O)
 
-- **`economia.py`** — resource state: points, generators, production rates, revolution/ascension multipliers
-- **`upgrades.py`** — upgrade catalog and purchase logic
-- **`progresso.py`** — progress tracking, revolution/ascension resets, victory condition
-- **`display.py`** — formats all state into display strings (returns strings, never prints)
-- **`constantes.py`** — all game constants: 40 generator definitions, 120 upgrades (auto-generated as 40×3), balance values
-- **`persistencia.py`** — the **only** module that touches the filesystem; saves/loads `saves/save.json`
+| Module | Responsibility |
+|--------|---------------|
+| `economia.py` | Points, generators, revolution/ascension multipliers |
+| `upgrades.py` | Upgrade catalog and per-generator factors |
+| `progresso.py` | Level, milestones, victory condition |
+| `display.py` | Number/string formatting only |
+| `constantes.py` | All numeric constants and catalogs (40 generators, 120 upgrades, 13 milestones) |
 
-### UI/Orchestration Layer
+### I/O boundary
 
-- **`main.py`** — terminal orchestrator; exposes `processar_comando()` used by both terminal and pygame modes
-- **`gui.py`** — real-time terminal UI using `curses` (Unix) or `threading` (Windows)
-- **`main_pygame.py`** + **`interface_pygame/renderizador.py`** — pygame frontend; rendering reads TADs through their public interface only
-- **`interface_pygame/ui_estado.py`** — UI-only state (scroll offsets, button registry); no game logic
+`persistencia.py` is the **only** module allowed to read/write files. It serializes/deserializes the three state dicts to `saves/save.json`.
 
-### Key Design Rules
+### pygame front-end (`main_pygame.py`)
 
-- All TAD functions return `(return_code, new_state)` tuples. Negative codes = errors (`-1` invalid param, `-2` insufficient resources, `-3` already purchased, `-4` locked).
-- States are plain dicts. New states are created via `{**estado, 'key': value}` — never mutate in place.
-- TADs have no I/O. Only `persistencia.py` reads/writes files.
-- `display.py` returns strings; orchestrators decide how to render them.
-- The upgrade catalog is generated programmatically in `constantes.py` (40 generators × ×2/×5/×10 multipliers).
+`main_pygame.py` is self-contained. It imports `processar_comando` from `main_console.py` to reuse tested command logic. Internally it has three sections: **ui_estado** (scroll, buttons, particles, flash — pure state, no pygame calls), **renderizador** (all drawing logic), and **loop principal** (event loop + orchestration). The `interface_pygame/` package is obsolete and can be deleted.
 
-## Game Mechanics Summary
+### Return code convention
 
-- **Generators** (40 total): buy with points; cost scales ×1.15 per unit; production multiplied by upgrade factors
-- **Upgrades** (120 total): one-time purchases that multiply a generator's output
-- **Revolution**: soft reset — gain crystals (multiplicative production bonus)
-- **Ascension**: requires 10 revolutions — gain fragments (exponential production bonus)
-- **Victory**: reach 1×10⁵⁰ points (Ponto Ômega)
+TAD functions return `(0, ...)` on success and `(non-zero, ...)` on error. The orchestrators check `codigo` before using updated state.

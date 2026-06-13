@@ -1,7 +1,7 @@
 # =============================================================================
 # main.py — Orquestrador (modo terminal, turn-based com acúmulo de tempo)
 # Responsável: Nicholas Esteves Ferreira
-# INF1040 · 2026.1 · Grupo 3WB
+# INF1040 - 2026.1 - Grupo 2
 # =============================================================================
 
 import time
@@ -18,12 +18,32 @@ from constantes import DELTA_TICK
 # Funções internas
 # ---------------------------------------------------------------------------
 def _limpar_tela():
+    """
+    Limpa o terminal (cls no Windows, clear no Unix).
+
+    Assertiva de entrada:
+        (nenhuma)
+
+    Assertiva de saída:
+        (nenhuma) — efeito colateral: terminal limpo; sem valor de retorno
+    """
     os.system('cls' if os.name == 'nt' else 'clear')
 
 def processar_comando(cmd, estado_eco, estado_upg, estado_prog):
     """
-    Interpreta e executa o comando do jogador.
-    Retornos: (codigo, eco, upg, prog, msg)
+    Interpreta e executa o comando digitado pelo jogador.
+
+    Assertiva de entrada:
+        cmd        (str)  — string de entrada do usuário (pode ser vazia)
+        estado_eco  (dict) — estado válido retornado por economia.inicializar_estado
+        estado_upg  (dict) — estado válido retornado por upgrades.inicializar_upgrades
+        estado_prog (dict) — estado válido retornado por progresso.inicializar_progresso
+
+    Assertiva de saída:
+        ( 0, eco, upg, prog, str) — comando executado com sucesso; estados podem
+                                    ter sido modificados; str é mensagem de feedback
+        (-1, eco, upg, prog, str) — comando inválido ou operação recusada;
+                                    estados originais preservados; str descreve o erro
     """
     partes = cmd.strip().lower().split()
     if not partes:
@@ -82,6 +102,21 @@ def processar_comando(cmd, estado_eco, estado_upg, estado_prog):
         return (-1, estado_eco, estado_upg, estado_prog,
                 "[ERRO] Revoluções insuficientes para Ascensão.")
 
+    # listar geradores
+    if len(partes) == 2 and partes[0] == 'listar' and partes[1] == 'geradores':
+        _, texto = display.renderizar_geradores(estado_eco, estado_upg)
+        return (0, estado_eco, estado_upg, estado_prog, texto)
+
+    # listar upgrades
+    if len(partes) == 2 and partes[0] == 'listar' and partes[1] == 'upgrades':
+        _, texto = display.renderizar_upgrades(estado_upg, estado_eco)
+        return (0, estado_eco, estado_upg, estado_prog, texto)
+
+    # status
+    if partes[0] == 'status':
+        _, texto = display.renderizar_painel(estado_eco, estado_upg, estado_prog)
+        return (0, estado_eco, estado_upg, estado_prog, texto)
+
     # novo jogo — reinicia apenas na memória; o arquivo só é sobrescrito ao sair
     if len(partes) == 2 and partes[0] == 'novo' and partes[1] == 'jogo':
         _, eco  = economia.inicializar_estado()
@@ -95,6 +130,16 @@ def processar_comando(cmd, estado_eco, estado_upg, estado_prog):
             f"[ERRO] Comando desconhecido: '{cmd}'. Digite 'ajuda'.")
 
 def _mostrar_ajuda():
+    """
+    Retorna a string com todos os comandos disponíveis para o jogador.
+
+    Assertiva de entrada:
+        (nenhuma)
+
+    Assertiva de saída:
+        str — texto multilinha com comandos, sintaxe e dica de uso;
+              sem código de retorno (não segue padrão TAD, função auxiliar de UI)
+    """
     return (
         "\n"
         "  Comandos disponíveis:\n"
@@ -110,6 +155,16 @@ def _mostrar_ajuda():
     )
 
 def _loop_principal():
+    """
+    Loop principal do modo terminal: carrega save, roda ticks e processa comandos.
+
+    Assertiva de entrada:
+        (nenhuma) — arquivo saves/save.json pode ou não existir
+
+    Assertiva de saída:
+        (nenhuma) — função bloqueante; encerra ao comando 'sair' ou Ctrl+C;
+                    salva o estado antes de encerrar
+    """
     # ─── Carregar ou inicializar ──────────────────────────────────────────
     cod, dados = persistencia.carregar_jogo()
     if cod == 0:
